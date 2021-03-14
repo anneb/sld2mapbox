@@ -1,0 +1,21 @@
+{
+  "name": "sld2mapbox",
+  "version": "1.0.0",
+  "description": "convert OGC style layer descriptor files to MapBox style json",
+  "main": "sld2mapbox.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "sld",
+    "mapbox",
+    "ogc",
+    "convert",
+    "style"
+  ],
+  "author": "Anne Blankert",
+  "license": "ISC",
+  "dependencies": {
+    "xml2js": "^0.4.23"
+  }
+}
