@@ -64,6 +64,18 @@ function initResult() {
     }
 }
 
+function parseBetweenOperator(result, parseBetweenOperator) {
+    let propertyName = parseBetweenOperator.PropertyName[0];
+    result.propertyNames.push(propertyName);
+    let lowerBoundaryLiteral = parseBetweenOperator.LowerBoundary[0].Literal[0];
+    let upperBoundaryLiteral = parseBetweenOperator.UpperBoundary[0].Literal[0];
+    result.literals.push(lowerBoundaryLiteral);
+    result.literals.push(upperBoundaryLiteral);
+    result.mapboxCondition.push('all');
+    result.mapboxCondition.push(['>=', ["get", propertyName], lowerBoundaryLiteral]);
+    result.mapboxCondition.push(['<=', ["get", propertyName], upperBoundaryLiteral]);
+}
+
 function parseRuleFilterExpression(result, sldExpression, depth) {
     let keys = Object.keys(sldExpression[0]).filter(key=>key!=='$');
     let sldOperator;
@@ -86,6 +98,8 @@ function parseRuleFilterExpression(result, sldExpression, depth) {
         result.literals = result.literals.concat(subResult2.literals);
         result.mapboxCondition.push(logicalOperatorMapping.get(sldOperator))
         result.mapboxCondition.push([subResult1.mapboxCondition, subResult2.mapboxCondition])
+    } else if (sldOperator === 'PropertyIsBetween') {
+        parseBetweenOperator(result, sldExpression[0].PropertyIsBetween[0]);
     }
     return result;
 }
@@ -213,6 +227,64 @@ function parseSldRule(rule) {
     return parsedRule;
 }
 
+function literalsAreNumeric(literals) {
+    for (const literal of literals) {
+        if (!literal.match(/^-?(?:0|0?\.[0-9]+|[1-9][0-9]*\.[0-9]+|0|[1-9][0-9]+)$/)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function mapboxConditionLiteralsToFloat(condition) {
+    // condition is [operator, get, literal] or [logicalop,[condition][condition]]
+    if (!Array.isArray(condition)) {
+        return;
+    }
+    if (condition.length === 3 && condition[1].length === 2 && condition[1][0] === 'get') {
+        let literal = parseFloat(condition[2]);
+        if (literal !== NaN) {
+            condition[2] = literal;
+        }
+    } else {
+        for (let i = 0; i < condition.length; i++) {
+            mapboxConditionLiteralsToFloat(condition[i]);
+        }
+    }
+}
+
+function convertStringsToNumbers(rules) {
+    let propertyLiteralsMap = new Map();
+    // get literalTypes for all properties
+    for (const rule of rules) {
+        if (rule.filter) {
+            let propertyKey = rule.filter.propertyNames.sort().join(',')
+            if (propertyLiteralsMap.has(propertyKey)) {
+                let literalType = propertyLiteralsMap.get(propertyKey);
+                if (literalType !== 'string') {
+                    if (!literalsAreNumeric(rule.filter.literals)) {
+                        propertyLiteralsMap.set(propertyKey, 'string');
+                    }
+                }
+            } else {
+                let literalType = literalsAreNumeric(rule.filter.literals) ? 'float' : 'string';
+                propertyLiteralsMap.set(propertyKey, literalType);
+            }
+        }
+    }
+    // convert integer and float properties
+    for (const rule of rules) {
+        let propertyKey = rule.filter.propertyNames.sort().join(',')
+        let literalType = propertyLiteralsMap.get(propertyKey);
+        if (literalType === 'float') {
+            for (let i = 0; i < rule.filter.literals.length; i++) {
+                rule.filter.literals[i] = parseFloat(rule.filter.literals[i]);
+            }
+            mapboxConditionLiteralsToFloat(rule.filter.mapboxCondition)
+        }
+    }
+}
+
 module.exports = function(sldXml) {
     const layerName = sldXml.StyledLayerDescriptor.NamedLayer[0].Name;
     let rules = [];
@@ -223,6 +295,7 @@ module.exports = function(sldXml) {
     }
     console.log(rules);
     let parsedRules = rules.map(rule=>parseSldRule(rule));
+    convertStringsToNumbers(parsedRules);
     console.log(parsedRules);
     return parsedRules;
 }
