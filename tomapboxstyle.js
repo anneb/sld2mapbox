@@ -46,7 +46,8 @@ function paintProperties(rules, layerType) {
     } else {
       result[`${layerType}-color`] = ["case"]
       for (const color of colors) {
-        result[`${layerType}-color`].push(color);
+        result[`${layerType}-color`].push(color[0]);
+        result[`${layerType}-color`].push(color[1]);
       }
       result[`${layerType}-color`].push('#000000');
     }
@@ -57,7 +58,8 @@ function paintProperties(rules, layerType) {
     } else {
       result[`${layerType}-opacity`] = ["case"]
       for (const opacity of opacities) {
-        result[`${layerType}-opacity`].push(opacity);
+        result[`${layerType}-opacity`].push(opacity[0]);
+        result[`${layerType}-opacity`].push(opacity[1]);
       }
       result[`${layerType}-opactity`].push(1);
     }
@@ -68,7 +70,8 @@ function paintProperties(rules, layerType) {
     } else {
       result[`${layerType}-width`] = ["case"]
       for (const width of widths) {
-        result[`${layerType}-width`].push(width);
+        result[`${layerType}-width`].push(width[0]);
+        result[`${layerType}-width`].push(width[1]);
       }
       result[`${layerType}-width`].push(1);
     }
