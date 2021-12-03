@@ -126,13 +126,13 @@ function parseSymbolParameters (result, cssSvgParameters, symbolType) {
                         break;
                     case 'fill-opacity':
                     case 'opacity':
-                        result[`${symbolType}-opacity`] = value;
+                        result[`${symbolType}-opacity`] = parseFloat(value);
                         break;
                     case 'stroke':
                         result[`${symbolType}-color`] = value;
                         break;
                     case 'stroke-width':
-                        result[`${symbolType}-width`] = value;
+                        result[`${symbolType}-width`] = parseFloat(value);
                         break;
                     case 'stroke-linejoin':
                         result['line-join'] = value;
@@ -141,10 +141,10 @@ function parseSymbolParameters (result, cssSvgParameters, symbolType) {
                         result['line-cap'] = value;
                         break;
                     case 'stroke-opacity':
-                        result[`${symbolType}`-opacity] = value;
+                        result[`${symbolType}`-opacity] = parseFloat(value);
                         break;
                     case 'stroke-dasharray':
-                        result['line-dasharray'] = value.split(' ');
+                        result['line-dasharray'] = value.split(' ').map(str=>parseFloat(str));
                         break;
                 }
             }
@@ -293,9 +293,9 @@ module.exports = function(sldXml) {
             rules.push(rule);
         }
     }
-    console.log(rules);
+    //console.log(rules);
     let parsedRules = rules.map(rule=>parseSldRule(rule));
     convertStringsToNumbers(parsedRules);
-    console.log(parsedRules);
+    //console.log(parsedRules);
     return parsedRules;
 }

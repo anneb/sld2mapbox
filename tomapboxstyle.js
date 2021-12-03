@@ -19,7 +19,7 @@ function rulesToLegendMap(rules) {
           }
       }
   }
-  console.log(myMap);
+  //console.log(myMap);
   return Array.from(myMap, ([name, value]) => ({ property: name, mapping: value }))
 }
 
@@ -38,22 +38,37 @@ function rulesToPropertyNames(rules) {
 function paintProperties(rules, layerType) {
   let result = {};
   let colors = rules.filter(rule=>rule[layerType][`${layerType}-color`]).map(rule=>[rule.filter.mapboxCondition,rule[layerType][`${layerType}-color`]]);
-  let opacities = rules.filter(rule=>rule[layerType][`${layerType}-opacity`]).map(rule=>[rule.filter.mapboxCondition,rule[layerType][`${layerType}-opacity`]]);
-  let widths = rules.filter(rule=>rule[layerType][`${layerType}-width`]).map(rule=>[rule.filter.mapboxCondition,rule[layerType][`${layerType}-width`]]);
+  let opacities = rules.filter(rule=>rule[layerType].hasOwnProperty(`${layerType}-opacity`)).map(rule=>[rule.filter.mapboxCondition,rule[layerType][`${layerType}-opacity`]]);
+  let widths = rules.filter(rule=>rule[layerType].hasOwnProperty(`${layerType}-width`)).map(rule=>[rule.filter.mapboxCondition,rule[layerType][`${layerType}-width`]]);
   if (colors.length) {
-    if (colors.length == 1) {
+    if (colors.length == 1 && !Array.isArray(colors[0])) {
       result[`${layerType}-color`] = colors[0];
     } else {
-      result[`${layerType}-color`] = ["case"]
-      for (const color of colors) {
-        result[`${layerType}-color`].push(color[0]);
-        result[`${layerType}-color`].push(color[1]);
+      const allOperatorsEqual = !colors.find(color=>Array.isArray(color[0]) && color[0].length && color[0][0] !== '==');
+      let property = null;
+      if (allOperatorsEqual) {
+        property = rulesToPropertyNames(rules);
       }
-      result[`${layerType}-color`].push('#000000');
+      if (allOperatorsEqual && property && property.length == 1) {
+        result[`${layerType}-color`] = ["match", ["get", property[0]]];
+        for (const color of colors) {
+          const literal = Array.isArray(color[0][1]) ? color[0][2] : color[0][1];
+          result[`${layerType}-color`].push(literal);
+          result[`${layerType}-color`].push(color[1]);
+        }
+        result[`${layerType}-color`].push('#000000');
+      } else {
+        result[`${layerType}-color`] = ["case"]
+        for (const color of colors) {
+          result[`${layerType}-color`].push(color[0]);
+          result[`${layerType}-color`].push(color[1]);
+        }
+        result[`${layerType}-color`].push('#000000');
+      }
     }
   }
   if (opacities.length) {
-    if (opacities.length == 1) {
+    if (opacities.length === 1 && !Array.isArray(opacities[0])) {
       result[`${layerType}-opacity`] = opacities[0]  
     } else {
       result[`${layerType}-opacity`] = ["case"]
@@ -61,11 +76,11 @@ function paintProperties(rules, layerType) {
         result[`${layerType}-opacity`].push(opacity[0]);
         result[`${layerType}-opacity`].push(opacity[1]);
       }
-      result[`${layerType}-opactity`].push(1);
+      result[`${layerType}-opacity`].push(1);
     }
   }
   if (widths.length) {
-    if (widths.length == 1) {
+    if (widths.length == 1 && !Array.isArray(widths[0])) {
       result[`${layerType}-width`] = widths[0]  
     } else {
       result[`${layerType}-width`] = ["case"]
@@ -113,7 +128,7 @@ function getFillLayers(sldStyleName, rules) {
     }
   }
   let layerProperties = Array.from(propertyMap);
-  console.log(layerProperties);
+  //console.log(layerProperties);
   for (const layerProperty of layerProperties) {
     fillLayers.push(getFillLayer(sldStyleName, rules.filter(rule=>rule.filter && rule.filter.propertyNames.sort().join(',') === layerProperty[0])))
   }
@@ -139,7 +154,7 @@ function getLineLayers(sldStyleName, rules) {
     }
   }
   let layerProperties = Array.from(propertyMap);
-  console.log(layerProperties);
+  //console.log(layerProperties);
   for (let i = 0; i < layerProperties.length; i++) {
     lineLayers.push(getLineLayer(`${sldStyleName}${i?`_${i}`:''}`, rules.filter(rule=>rule.filter && rule.filter.propertyNames.sort().join(',') === layerProperties[i][0])))
   }
